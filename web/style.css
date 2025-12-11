@@ -1,0 +1,184 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #2E8B57; /* Sea Green (Table felt color) */
+    color: white;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+h1 {
+    font-size: 3rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin-top: 20px;
+    margin-bottom: 20px;
+    font-family: 'Courier New', Courier, monospace; /* Classic Casino vibe */
+}
+
+#game-area {
+    width: 90%;
+    max-width: 800px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    border: 5px solid #8B4513; /* Wood trim */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hand {
+    width: 100%;
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+    padding-bottom: 10px;
+}
+
+.hand:last-child {
+    border-bottom: none;
+}
+
+.hand h3 {
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.cards-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.card {
+    background-color: white;
+    color: black;
+    width: 80px;
+    height: 120px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+    position: relative;
+    user-select: none;
+}
+
+/* Suits Colors */
+.card.hearts, .card.diamonds {
+    color: #d9534f;
+}
+.card.clubs, .card.spades {
+    color: #333;
+}
+
+/* Corner Ranks */
+.card::before, .card::after {
+    position: absolute;
+    font-size: 0.8rem;
+}
+.card::before {
+    top: 5px;
+    left: 5px;
+    content: attr(data-rank) " " attr(data-suit);
+}
+.card::after {
+    bottom: 5px;
+    right: 5px;
+    content: attr(data-rank) " " attr(data-suit);
+    transform: rotate(180deg);
+}
+
+
+.hidden-card {
+    background: repeating-linear-gradient(
+        45deg,
+        #b71c1c,
+        #b71c1c 10px,
+        #c62828 10px,
+        #c62828 20px
+    );
+    color: transparent;
+    border: 2px solid white;
+}
+.hidden-card::before, .hidden-card::after {
+    content: "";
+}
+
+.controls {
+    margin-top: 20px;
+    display: flex;
+    gap: 15px;
+}
+
+button {
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    text-transform: uppercase;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+#hit-btn {
+    background-color: #f0ad4e;
+    color: #fff;
+}
+#hit-btn:hover:not(:disabled) {
+    background-color: #ec971f;
+}
+
+#stand-btn {
+    background-color: #d9534f;
+    color: #fff;
+}
+#stand-btn:hover:not(:disabled) {
+    background-color: #c9302c;
+}
+
+#start-btn, #restart-btn {
+    background-color: #5bc0de;
+    color: #fff;
+}
+#start-btn:hover, #restart-btn:hover {
+    background-color: #31b0d5;
+}
+
+#status {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 20px 0;
+    padding: 10px 20px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 5px;
+    min-width: 200px;
+    text-align: center;
+}
+
+/* Utility to hide elements */
+.hidden {
+    display: none !important;
+}
