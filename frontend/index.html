@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+        .hand { margin: 20px; min-height: 100px; }
+        .card { display: inline-block; border: 1px solid #333; padding: 10px; margin: 5px; border-radius: 5px; width: 40px; background: #fff; }
+        .controls { margin-top: 20px; }
+        button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; }
+        #status { font-weight: bold; font-size: 1.2em; margin: 20px; }
+        .hidden-card { background: #ccc; color: #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Blackjack</h1>
+
+    <div id="game-area" style="display:none;">
+        <div class="hand">
+            <h3>Dealer's Hand (<span id="dealer-score">?</span>)</h3>
+            <div id="dealer-cards"></div>
+        </div>
+
+        <div class="hand">
+            <h3>Your Hand (<span id="player-score">0</span>)</h3>
+            <div id="player-cards"></div>
+        </div>
+
+        <div id="status"></div>
+
+        <div class="controls">
+            <button id="hit-btn" onclick="hit()">Hit</button>
+            <button id="stand-btn" onclick="stand()">Stand</button>
+            <button id="restart-btn" onclick="startGame()" style="display:none;">New Game</button>
+        </div>
+    </div>
+
+    <button id="start-btn" onclick="startGame()">Start Game</button>
+
+    <script src="app.js"></script>
+</body>
+</html>

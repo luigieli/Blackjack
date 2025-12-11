@@ -1,0 +1,4 @@
+backend/blackjack-api
+*.log
+.idea/
+*.DS_Store
