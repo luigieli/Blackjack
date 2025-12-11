@@ -9,25 +9,55 @@ import (
 )
 
 type GameController struct {
-	Store *game.GameStore
+	Store       *game.GameStore
+	PlayerStore *game.PlayerStore
 }
 
-func NewGameController() *GameController {
+func NewGameController(playerStore *game.PlayerStore) *GameController {
 	return &GameController{
-		Store: game.NewGameStore(),
+		Store:       game.NewGameStore(),
+		PlayerStore: playerStore,
 	}
 }
 
 // GameResponse DTO to hide internal details if needed (e.g., hidden dealer card)
 type GameResponse struct {
-	ID         string          `json:"id"`
-	PlayerHand game.Hand       `json:"player_hand"`
-	DealerHand game.Hand       `json:"dealer_hand"` // We might need to mask this
-	Status     game.GameStatus `json:"status"`
+	ID            string          `json:"id"`
+	PlayerID      string          `json:"player_id"`
+	PlayerHand    game.Hand       `json:"player_hand"`
+	DealerHand    game.Hand       `json:"dealer_hand"` // We might need to mask this
+	Status        game.GameStatus `json:"status"`
+	CurrentBet    int             `json:"current_bet"`
+	Payout        float64         `json:"payout"`
+	PlayerBalance int             `json:"player_balance"` // Current Balance
+}
+
+// StartGameRequest DTO
+type StartGameRequest struct {
+	PlayerID  string `json:"player_id" binding:"required"`
+	BetAmount int    `json:"bet_amount" binding:"required,min=1,max=10"`
 }
 
 // StartGame handles POST /api/games
 func (c *GameController) StartGame(ctx *gin.Context) {
+	var req StartGameRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Validate Player and Funds
+	_, err := c.PlayerStore.AdjustBalance(req.PlayerID, -req.BetAmount)
+	if err != nil {
+		// e.g. "player not found" or "insufficient funds"
+		status := http.StatusBadRequest
+		if err.Error() == "player not found" {
+			status = http.StatusNotFound
+		}
+		ctx.JSON(status, gin.H{"error": err.Error()})
+		return
+	}
+
 	// Initialize Deck
 	deck := game.NewDeck()
 	deck = game.Shuffle(deck)
@@ -52,27 +82,58 @@ func (c *GameController) StartGame(ctx *gin.Context) {
 
 	gameState := &game.GameState{
 		ID:         id,
+		PlayerID:   req.PlayerID,
 		PlayerHand: playerHand,
 		DealerHand: dealerHand,
 		Deck:       deck,
 		Status:     game.StatusPlayerTurn,
+		CurrentBet: req.BetAmount,
+		Payout:     0,
 	}
 
 	// Check for initial Blackjack
+	payoutMultiplier := 0.0
+	finished := false
+
 	if playerHand.Score == 21 {
 		if dealerHand.Score == 21 {
 			gameState.Status = game.StatusPush
+			payoutMultiplier = 1.0 // Return bet
 		} else {
 			gameState.Status = game.StatusPlayerWon
+			payoutMultiplier = 2.5 // Blackjack pays 3:2 (Bet * 1 + Bet * 1.5) = Bet * 2.5
 		}
+		finished = true
 	} else if dealerHand.Score == 21 {
 		// Dealer blackjack, player loses (unless push handled above)
 		gameState.Status = game.StatusDealerWon
+		payoutMultiplier = 0.0
+		finished = true
+	}
+
+	if finished {
+		gameState.Payout = float64(gameState.CurrentBet) * payoutMultiplier
+		if gameState.Payout > 0 {
+			// Credit winnings
+			// Note: We already deducted the bet. So if we "return bet", we credit bet amount.
+			// If we win 3:2, we credit bet * 2.5.
+			c.PlayerStore.AdjustBalance(gameState.PlayerID, int(gameState.Payout))
+		}
 	}
 
 	c.Store.Save(gameState)
 
-	ctx.JSON(http.StatusCreated, maskDealerHand(gameState))
+	// Get fresh balance for response
+	player, _ := c.PlayerStore.Get(req.PlayerID)
+	balance := 0
+	if player != nil {
+		balance = player.Balance
+	}
+
+	resp := maskDealerHand(gameState)
+	resp.PlayerBalance = balance
+
+	ctx.JSON(http.StatusCreated, resp)
 }
 
 // ActionRequest DTO
@@ -108,10 +169,21 @@ func (c *GameController) PerformAction(ctx *gin.Context) {
 
 		if game.IsBust(gameState.PlayerHand.Score) {
 			gameState.Status = game.StatusDealerWon // Player Bust
+			gameState.Payout = 0
 		}
 
 		c.Store.Save(gameState)
-		ctx.JSON(http.StatusOK, maskDealerHand(gameState))
+
+		player, _ := c.PlayerStore.Get(gameState.PlayerID)
+		balance := 0
+		if player != nil {
+			balance = player.Balance
+		}
+
+		resp := maskDealerHand(gameState)
+		resp.PlayerBalance = balance
+
+		ctx.JSON(http.StatusOK, resp)
 		return
 
 	} else if req.Action == "stand" {
@@ -125,19 +197,47 @@ func (c *GameController) PerformAction(ctx *gin.Context) {
 		}
 
 		// Determine Winner
+		payoutMultiplier := 0.0
 		if game.IsBust(gameState.DealerHand.Score) {
 			gameState.Status = game.StatusPlayerWon
+			payoutMultiplier = 2.0 // 1:1 payout (Bet + Winnings)
 		} else if gameState.DealerHand.Score > gameState.PlayerHand.Score {
 			gameState.Status = game.StatusDealerWon
+			payoutMultiplier = 0.0
 		} else if gameState.DealerHand.Score < gameState.PlayerHand.Score {
 			gameState.Status = game.StatusPlayerWon
+			payoutMultiplier = 2.0
 		} else {
 			gameState.Status = game.StatusPush
+			payoutMultiplier = 1.0 // Return bet
+		}
+
+		gameState.Payout = float64(gameState.CurrentBet) * payoutMultiplier
+		if gameState.Payout > 0 {
+			c.PlayerStore.AdjustBalance(gameState.PlayerID, int(gameState.Payout))
 		}
 
 		c.Store.Save(gameState)
+
 		// Return full state (reveal dealer hand)
-		ctx.JSON(http.StatusOK, gameState)
+		player, _ := c.PlayerStore.Get(gameState.PlayerID)
+		balance := 0
+		if player != nil {
+			balance = player.Balance
+		}
+
+		resp := GameResponse{
+			ID:            gameState.ID,
+			PlayerID:      gameState.PlayerID,
+			PlayerHand:    gameState.PlayerHand,
+			DealerHand:    gameState.DealerHand,
+			Status:        gameState.Status,
+			CurrentBet:    gameState.CurrentBet,
+			Payout:        gameState.Payout,
+			PlayerBalance: balance,
+		}
+
+		ctx.JSON(http.StatusOK, resp)
 		return
 
 	} else {
@@ -147,25 +247,28 @@ func (c *GameController) PerformAction(ctx *gin.Context) {
 }
 
 // maskDealerHand hides the dealer's second card if the game is still in progress
-func maskDealerHand(g *game.GameState) interface{} {
-	// If game is over, show everything
-	if g.Status != game.StatusPlayerTurn && g.Status != game.StatusDealerTurn {
-		return g
-	}
-
+func maskDealerHand(g *game.GameState) GameResponse {
 	// Create a copy or a DTO
 	maskedHand := g.DealerHand
-	if len(maskedHand.Cards) > 1 {
-		// Keep only the first card visible
-		maskedHand.Cards = []game.Card{maskedHand.Cards[0], {Rank: "", Suit: ""}} // Mask second card
-		// Don't show score or show partial? Usually hide score too.
-		maskedHand.Score = 0 // Or just calculate score of first card
+
+	// If game is over, show everything
+	if g.Status == game.StatusPlayerTurn || g.Status == game.StatusDealerTurn {
+		if len(maskedHand.Cards) > 1 {
+			// Keep only the first card visible
+			maskedHand.Cards = []game.Card{maskedHand.Cards[0], {Rank: "", Suit: ""}} // Mask second card
+			// Don't show score or show partial? Usually hide score too.
+			maskedHand.Score = 0 // Or just calculate score of first card
+		}
 	}
 
 	return GameResponse{
 		ID:         g.ID,
+		PlayerID:   g.PlayerID,
 		PlayerHand: g.PlayerHand,
 		DealerHand: maskedHand,
 		Status:     g.Status,
+		CurrentBet: g.CurrentBet,
+		Payout:     g.Payout,
+		// PlayerBalance must be filled by caller
 	}
 }

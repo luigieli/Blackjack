@@ -1,36 +1,48 @@
 package main
 
 import (
+	"blackjack-api/game"
 	"blackjack-api/handlers"
+	"log"
+	"os"
+
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	r := gin.Default()
 
-	// Serve frontend static files
-	// The frontend directory is mounted to /app/frontend in the container
-	// When running locally, we need to point to the correct path.
-	// We will assume "frontend" if running from root, or "../frontend" if from backend.
-	// Since we are running `go run .` inside `backend`, `../frontend` is correct.
-	// But in Docker, we map to `/app/frontend`, and working dir is `/app`. So `./frontend`.
+	// Determine frontend path
+	frontendPath := "./frontend"
+	if _, err := os.Stat(frontendPath); os.IsNotExist(err) {
+		if _, err := os.Stat("../frontend"); err == nil {
+			frontendPath = "../frontend"
+		} else {
+			log.Printf("Warning: frontend directory not found at ./frontend or ../frontend")
+		}
+	}
+	log.Printf("Serving frontend from: %s", frontendPath)
 
-	// Let's support both or just assume relative path ./frontend exists (via docker mount).
-	// If running locally, I should probably symlink or just run from root?
-	// No, if I run `go run .` in `backend`, I need `../frontend`.
-	// Let's check if ./frontend exists, if not try ../frontend.
+	// Static files
+	r.Static("/frontend", frontendPath)
+	r.StaticFile("/", frontendPath+"/index.html")
+	r.StaticFile("/app.js", frontendPath+"/app.js")
 
-	r.Static("/frontend", "./frontend")
-	r.StaticFile("/", "./frontend/index.html")
-	// Also serve app.js at root or relative
-	r.StaticFile("/app.js", "./frontend/app.js")
-
-	gameController := handlers.NewGameController()
+	// Dependencies
+	playerStore := game.NewPlayerStore()
+	gameController := handlers.NewGameController(playerStore)
+	playerController := handlers.NewPlayerController(playerStore)
 
 	api := r.Group("/api")
 	{
+		// Games
 		api.POST("/games", gameController.StartGame)
 		api.POST("/games/:id/action", gameController.PerformAction)
+
+		// Players
+		api.POST("/players", playerController.CreatePlayer)
+		api.GET("/players/:id", playerController.GetPlayer)
+		api.POST("/players/:id/reset", playerController.ResetBalance)
 	}
 
 	r.Run(":8080")
