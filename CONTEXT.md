@@ -70,6 +70,25 @@ blackjack-api/
 - [ ] **5.1 Integration Check:** Verify full game flow (Start -> Hit/Stand -> Win/Loss).
 - [ ] **5.2 Final Polish:** Ensure code style (gofmt), comments, and README.
 
+### Phase 6: Advanced UI/UX (Casino Polish)
+- [ ] **6.1 Visual Overhaul:** Update CSS for a "Casino Table" aesthetic (Green felt background).
+- [ ] **6.2 Realistic Cards:** Implement card styling with shadows (`box-shadow`), rounded corners, and suit icons/images to look like real physical cards.
+- [ ] **6.3 Animations:** Add CSS keyframe animations for:
+    -   **Shuffling:** Visual deck shuffle effect.
+    -   **Dealing:** Cards sliding into position.
+- [ ] **6.4 Game States:** Create distinct, visually appealing overlay screens for "You Won!" and "Game Over".
+
+### Phase 7: Betting System (Economy)
+- [ ] **7.1 Backend Models:** Update `GameState` to track `PlayerTokens` (Session based, start = 100) and `CurrentBet`.
+- [ ] **7.2 API Updates:**
+    -   Modify `POST /api/games` to accept `betAmount` (Max 10).
+    -   Validate funds (Balance >= Bet). Deduct bet on start.
+- [ ] **7.3 Payout Logic:** Update `Stand` logic to calculate winnings:
+    -   Win: Return Bet * 2.
+    -   Blackjack: Return Bet * 2.5 (3:2 payout).
+    -   Push: Return Bet.
+- [ ] **7.4 Frontend Integration:** Add UI for "Place Bet" (Input/Slider) and "Token Balance" display. Block play if balance is 0.
+
 ## 6. AI Agent Protocols
 *   **Atomic Changes:** Implement one phase or sub-phase at a time.
 *   **Testing:** Every new or modified code block MUST be covered by unit tests. Run `go test ./...` regularly and ensure all existing tests pass after any change.
