@@ -34,8 +34,8 @@ COPY --from=builder /app/blackjack-api .
 # I will leave this as is but add a comment or try to accommodate.
 # Actually, I can't copy ../frontend if context is backend.
 # So for this specific setup, we rely on the volume mount or assume frontend files are copied to backend/frontend before build in a CI pipeline.
-# BUT, I can create a 'frontend' directory here to avoid crash if not mounted.
-RUN mkdir -p frontend
+# BUT, I can create a 'web' directory here to avoid crash if not mounted.
+RUN mkdir -p web
 
 # Expose port 8080
 EXPOSE 8080

@@ -70,6 +70,10 @@ blackjack-api/
 - [ ] **5.1 Integration Check:** Verify full game flow (Start -> Hit/Stand -> Win/Loss).
 - [ ] **5.2 Final Polish:** Ensure code style (gofmt), comments, and README.
 
+### Phase 6: Frontend Polish & Animations
+- [x] **6.1 Styles:** Use `box-sizing: border-box` to ensure consistent card sizes. Add hover effects.
+- [x] **6.2 Animations:** Add shuffle/deal animations on game start, deal animation on hit, and flip animation for dealer's hidden card reveal.
+
 ## 6. AI Agent Protocols
 *   **Atomic Changes:** Implement one phase or sub-phase at a time.
 *   **Testing:** Every new or modified code block MUST be covered by unit tests. Run `go test ./...` regularly and ensure all existing tests pass after any change.
