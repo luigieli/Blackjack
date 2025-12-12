@@ -65,6 +65,8 @@ type GameState struct {
 	PlayerID   string     `json:"player_id"`
 	BetAmount  int        `json:"bet_amount"`
 	PlayerHand Hand       `json:"player_hand"`
+	SplitHand  *Hand      `json:"split_hand,omitempty"` // Second hand if split
+	CurrentHandIndex int  `json:"current_hand_index"`   // 0 for PlayerHand, 1 for SplitHand
 	DealerHand Hand       `json:"dealer_hand"`
 	Deck       []Card     `json:"-"` // Hide deck from JSON
 	Status     GameStatus `json:"status"`

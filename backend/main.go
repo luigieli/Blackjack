@@ -26,11 +26,18 @@ func main() {
 
 	gameController := handlers.NewGameController()
 
+	// Add middleware to specific group or globally?
+	// User wants "all logs of the api communication".
+	// So we apply it to /api group.
+
 	api := r.Group("/api")
+	api.Use(handlers.StatsMiddleware())
 	{
 		api.POST("/games", gameController.StartGame)
 		api.POST("/games/:id/action", gameController.PerformAction)
 	}
+
+	r.GET("/stats", handlers.GetStats)
 
 	r.Run(":8080")
 }
