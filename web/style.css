@@ -19,7 +19,7 @@ body {
     background-color: rgba(0, 0, 0, 0.4);
     padding: 10px 20px;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end; /* Wallet moves to right if needed, or left. Usually right. */
     align-items: center;
     position: sticky;
     top: 0;
@@ -29,7 +29,31 @@ body {
 .wallet-info {
     font-size: 1.2rem;
     font-weight: bold;
-    color: #f0ad4e;
+    color: white;
+    background-color: black;
+    border: 3px dashed white;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    line-height: 1.1;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.wallet-info span {
+    font-size: 1.4rem;
+    display: block;
+}
+
+.wallet-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #ccc;
 }
 
 .betting-controls {
@@ -66,6 +90,22 @@ h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+/* New Split Button Style */
+#split-btn {
+    background-color: #5bc0de;
+    color: #fff;
+}
+#split-btn:hover:not(:disabled) {
+    background-color: #31b0d5;
+}
+
+/* Active Hand Indicator */
+.hand.active-hand {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); /* Gold glow */
 }
 
 .hand {
