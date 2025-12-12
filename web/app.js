@@ -17,6 +17,10 @@ async function startGame() {
         // Enable controls
         enableControls(true);
 
+        // Reset containers (IMPORTANT for New Game animation)
+        document.getElementById('dealer-cards').innerHTML = '';
+        document.getElementById('player-cards').innerHTML = '';
+
         updateUI(data);
     } catch (error) {
         console.error(error);
@@ -61,30 +65,17 @@ function updateUI(gameState) {
     const dealerScoreSpan = document.getElementById('dealer-score');
     const playerScoreSpan = document.getElementById('player-score');
 
-    // Update Player Hand
-    playerContainer.innerHTML = '';
-    gameState.player_hand.cards.forEach(card => {
-        playerContainer.appendChild(createCardElement(card));
-    });
+    // Update Hands with Animation Logic
+    updateHand(playerContainer, gameState.player_hand.cards);
+    updateHand(dealerContainer, gameState.dealer_hand.cards);
+
     playerScoreSpan.innerText = gameState.player_hand.score;
 
-    // Update Dealer Hand
-    dealerContainer.innerHTML = '';
+    // Determine Dealer Score Display
     let dealerScoreDisplay = gameState.dealer_hand.score;
-    let isMasked = false;
-
-    gameState.dealer_hand.cards.forEach(card => {
-        if (card.rank === "") { // Masked card
-            const el = document.createElement('div');
-            el.className = 'card hidden-card';
-            dealerContainer.appendChild(el);
-            isMasked = true;
-        } else {
-            dealerContainer.appendChild(createCardElement(card));
-        }
-    });
-
-    if (isMasked) {
+    // Check if any card is hidden (rank is empty)
+    const hasHidden = gameState.dealer_hand.cards.some(c => c.rank === "");
+    if (hasHidden) {
         dealerScoreDisplay = "?";
     }
     dealerScoreSpan.innerText = dealerScoreDisplay;
@@ -110,22 +101,105 @@ function updateUI(gameState) {
     }
 }
 
-function createCardElement(card) {
-    const el = document.createElement('div');
-    const suitLower = card.suit.toLowerCase();
-    el.className = `card ${suitLower}`;
+function updateHand(container, cards) {
+    const currentElements = container.querySelectorAll('.card-wrapper');
+    const currentCount = currentElements.length;
 
-    // Set data attributes for pseudo-elements (corners)
+    // 1. Add new cards
+    if (cards.length > currentCount) {
+        for (let i = currentCount; i < cards.length; i++) {
+            const cardData = cards[i];
+            const el = createCardElement(cardData);
+
+            // Add Fly-In Animation
+            el.classList.add('fly-in');
+
+            // Stagger animations slightly if multiple cards added at once (start game)
+            if (cards.length - currentCount > 1) {
+                el.style.animationDelay = `${(i - currentCount) * 0.1}s`;
+            }
+
+            container.appendChild(el);
+        }
+    }
+
+    // 2. Update existing cards (Check for Flip)
+    for (let i = 0; i < currentCount; i++) {
+        const cardData = cards[i];
+        const wrapper = currentElements[i];
+        const inner = wrapper.querySelector('.card-inner');
+        const frontFace = inner.querySelector('.card-face.front');
+
+        // Check if previously hidden (flipped) and now revealed
+        const isCurrentlyFlipped = inner.classList.contains('flipped');
+        const shouldBeHidden = (cardData.rank === "");
+
+        if (isCurrentlyFlipped && !shouldBeHidden) {
+            // Reveal!
+            // Update the front face content
+            updateCardFaceContent(frontFace, cardData);
+
+            // Remove the flipped class to rotate back to 0deg
+            inner.classList.remove('flipped');
+        } else if (!isCurrentlyFlipped && shouldBeHidden) {
+            // Hide (Rare case, maybe reset?)
+            inner.classList.add('flipped');
+        }
+
+        // Ensure content matches if not hidden
+        if (!shouldBeHidden) {
+             updateCardFaceContent(frontFace, cardData);
+        }
+    }
+}
+
+function createCardElement(card) {
+    // Structure:
+    // .card-wrapper (fly-in)
+    //   .card-inner (transform-style)
+    //     .card-face.front
+    //     .card-face.back
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'card-wrapper';
+
+    const inner = document.createElement('div');
+    inner.className = 'card-inner';
+
+    // If card rank is empty, it's hidden -> Start flipped
+    if (card.rank === "") {
+        inner.classList.add('flipped');
+    }
+
+    // Front Face
+    const front = document.createElement('div');
+    updateCardFaceContent(front, card); // helper to set classes/content
+
+    // Back Face
+    const back = document.createElement('div');
+    back.className = 'card-face back';
+
+    inner.appendChild(front);
+    inner.appendChild(back);
+    wrapper.appendChild(inner);
+
+    return wrapper;
+}
+
+function updateCardFaceContent(el, card) {
+    el.className = 'card-face front';
+    if (card.rank === "") return; // Empty content for hidden card initially
+
+    const suitLower = card.suit ? card.suit.toLowerCase() : '';
+    el.classList.add(suitLower);
+
     el.setAttribute('data-rank', getShortRank(card.rank));
     el.setAttribute('data-suit', getSuitSymbol(card.suit));
-
-    // Main center content
     el.innerText = getSuitSymbol(card.suit);
-
-    return el;
 }
 
 function getShortRank(rank) {
+    if (!rank) return '';
     if (rank === '10') return '10';
     return rank.charAt(0);
 }

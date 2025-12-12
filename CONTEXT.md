@@ -71,12 +71,14 @@ blackjack-api/
 - [ ] **5.2 Final Polish:** Ensure code style (gofmt), comments, and README.
 
 ### Phase 6: Advanced UI/UX (Casino Polish)
-- [ ] **6.1 Visual Overhaul:** Update CSS for a "Casino Table" aesthetic (Green felt background).
-- [ ] **6.2 Realistic Cards:** Implement card styling with shadows (`box-shadow`), rounded corners, and suit icons/images to look like real physical cards.
-- [ ] **6.3 Animations:** Add CSS keyframe animations for:
-    -   **Shuffling:** Visual deck shuffle effect.
-    -   **Dealing:** Cards sliding into position.
-- [ ] **6.4 Game States:** Create distinct, visually appealing overlay screens for "You Won!" and "Game Over".
+- [x] **6.1 Visual Overhaul:** Update CSS for a "Casino Table" aesthetic (Green felt background).
+- [x] **6.2 Realistic Cards:** Implement card styling with shadows (`box-shadow`), rounded corners, and suit icons/images to look like real physical cards.
+- [x] **6.3 Animations:** Add CSS keyframe animations for:
+    -   **Shuffling/Dealing:** Cards "fly in" from off-screen with staggered timing.
+    -   **Flip:** 3D flip animation for revealing the dealer's hidden card.
+    -   **Hover:** Pop-up effect when hovering over cards.
+    -   **Fix:** Resolved sizing discrepancy for hidden cards using `box-sizing: border-box`.
+- [x] **6.4 Game States:** Create distinct, visually appealing overlay screens for "You Won!" and "Game Over".
 
 ### Phase 7: Betting System (Economy)
 - [ ] **7.1 Backend Models:** Update `GameState` to track `PlayerTokens` (Session based, start = 100) and `CurrentBet`.
