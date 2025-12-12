@@ -84,7 +84,9 @@ async function startGame() {
 
         // UI Transition
         document.getElementById('setup-area').style.display = 'none';
-        document.getElementById('game-area').style.display = 'block';
+        document.getElementById('game-area').classList.remove('hidden');
+        document.getElementById('game-area').style.display = 'block'; // Ensure block display if css uses hidden class
+        document.getElementById('next-hand-btn').classList.add('hidden');
         document.getElementById('next-hand-btn').style.display = 'none';
         document.getElementById('payout-msg').innerText = '';
 
@@ -141,35 +143,51 @@ function updateUI(gameState) {
         updateBalanceDisplay(gameState.player_balance);
     }
 
-    // Update Player
+    // Update Player Hand
     playerContainer.innerHTML = '';
     gameState.player_hand.cards.forEach(card => {
         playerContainer.appendChild(createCardElement(card));
     });
     playerScoreSpan.innerText = gameState.player_hand.score;
 
-    // Update Dealer
+    // Update Dealer Hand
     dealerContainer.innerHTML = '';
     let dealerScoreDisplay = gameState.dealer_hand.score;
+    let isMasked = false;
+
     gameState.dealer_hand.cards.forEach(card => {
         if (card.rank === "") { // Masked card
             const el = document.createElement('div');
             el.className = 'card hidden-card';
-            el.innerText = '?';
             dealerContainer.appendChild(el);
-            dealerScoreDisplay = "?";
+            isMasked = true;
         } else {
             dealerContainer.appendChild(createCardElement(card));
         }
     });
+
+    if (isMasked) {
+        dealerScoreDisplay = "?";
+    }
     dealerScoreSpan.innerText = dealerScoreDisplay;
 
-    // Status
-    statusDiv.innerText = `Status: ${gameState.status}`;
+    // Update Status Message
+    statusDiv.innerText = formatStatus(gameState.status);
 
+    // Handle Game Over
     if (gameState.status !== 'PlayerTurn') {
         enableControls(false);
+        document.getElementById('next-hand-btn').classList.remove('hidden');
         document.getElementById('next-hand-btn').style.display = 'inline-block';
+
+        // Highlight status
+        if (gameState.status === 'PlayerWon' || gameState.status === 'DealerBust') {
+            statusDiv.style.color = '#5cb85c'; // Green
+        } else if (gameState.status === 'DealerWon' || gameState.status === 'PlayerBust') {
+            statusDiv.style.color = '#d9534f'; // Red
+        } else {
+            statusDiv.style.color = '#f0ad4e'; // Orange (Push)
+        }
 
         if (gameState.payout > 0) {
             payoutMsg.innerText = `You won $${gameState.payout}!`;
@@ -178,10 +196,13 @@ function updateUI(gameState) {
         } else {
             payoutMsg.innerText = `House Wins.`;
         }
+    } else {
+         statusDiv.style.color = 'black'; // Or default text color
     }
 }
 
 function resetUIForNewGame() {
+    document.getElementById('game-area').classList.add('hidden');
     document.getElementById('game-area').style.display = 'none';
     document.getElementById('setup-area').style.display = 'block';
     showMessage('');
@@ -189,9 +210,22 @@ function resetUIForNewGame() {
 
 function createCardElement(card) {
     const el = document.createElement('div');
-    el.className = 'card';
-    el.innerText = `${card.rank} ${getSuitSymbol(card.suit)}`;
+    const suitLower = card.suit.toLowerCase();
+    el.className = `card ${suitLower}`;
+
+    // Set data attributes for pseudo-elements (corners)
+    el.setAttribute('data-rank', getShortRank(card.rank));
+    el.setAttribute('data-suit', getSuitSymbol(card.suit));
+
+    // Main center content
+    el.innerText = getSuitSymbol(card.suit);
+
     return el;
+}
+
+function getShortRank(rank) {
+    if (rank === '10') return '10';
+    return rank.charAt(0);
 }
 
 function getSuitSymbol(suit) {
@@ -200,7 +234,18 @@ function getSuitSymbol(suit) {
         case 'Diamonds': return '♦';
         case 'Clubs': return '♣';
         case 'Spades': return '♠';
-        default: return suit;
+        default: return '';
+    }
+}
+
+function formatStatus(status) {
+    switch (status) {
+        case 'PlayerTurn': return 'Your Turn';
+        case 'DealerTurn': return 'Dealer\'s Turn';
+        case 'PlayerWon': return 'You Win!';
+        case 'DealerWon': return 'Dealer Wins!';
+        case 'Push': return 'Push (Tie)';
+        default: return status;
     }
 }
 

@@ -3,7 +3,6 @@ package main
 import (
 	"blackjack-api/game"
 	"blackjack-api/handlers"
-	"log"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -12,21 +11,20 @@ import (
 func main() {
 	r := gin.Default()
 
-	// Determine frontend path
-	frontendPath := "./frontend"
-	if _, err := os.Stat(frontendPath); os.IsNotExist(err) {
-		if _, err := os.Stat("../frontend"); err == nil {
-			frontendPath = "../frontend"
-		} else {
-			log.Printf("Warning: frontend directory not found at ./frontend or ../frontend")
+	// Determine web directory path
+	// If running in Docker or from root where ./web exists
+	webDir := "./web"
+	if _, err := os.Stat(webDir); os.IsNotExist(err) {
+		// Try ../web (if running from backend/)
+		if _, err := os.Stat("../web"); err == nil {
+			webDir = "../web"
 		}
 	}
-	log.Printf("Serving frontend from: %s", frontendPath)
 
-	// Static files
-	r.Static("/frontend", frontendPath)
-	r.StaticFile("/", frontendPath+"/index.html")
-	r.StaticFile("/app.js", frontendPath+"/app.js")
+	r.Static("/web", webDir)
+	r.StaticFile("/", webDir+"/index.html")
+	r.StaticFile("/app.js", webDir+"/app.js")
+	r.StaticFile("/style.css", webDir+"/style.css")
 
 	// Dependencies
 	playerStore := game.NewPlayerStore()
