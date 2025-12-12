@@ -1,18 +1,55 @@
 let gameId = null;
 const API_URL = '/api/games';
 
+// Initialize Player ID
+let playerId = localStorage.getItem('bj_player_id');
+if (!playerId) {
+    // Simple UUID generator
+    playerId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+    localStorage.setItem('bj_player_id', playerId);
+}
+
+// Check if there was a previous game state or balance in localStorage?
+// No, we rely on the backend. But we should fetch initial balance perhaps?
+// For now, balance will update when we start a game or (todo) separate endpoint.
+// We'll just wait for the first game.
+
 async function startGame() {
+    const betInput = document.getElementById('bet-amount');
+    const betAmount = parseInt(betInput.value, 10);
+
+    if (isNaN(betAmount) || betAmount < 1 || betAmount > 10) {
+        alert("Please enter a bet between 1 and 10.");
+        return;
+    }
+
     try {
-        const response = await fetch(API_URL, { method: 'POST' });
-        if (!response.ok) throw new Error('Failed to start game');
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Player-ID': playerId
+            },
+            body: JSON.stringify({ bet_amount: betAmount })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Failed to start game');
+        }
+
         const data = await response.json();
 
         gameId = data.id;
 
-        // Show Game Area, Hide Start Button
-        document.getElementById('start-btn').classList.add('hidden');
+        // Hide Betting Controls, Show Game Area
+        document.getElementById('betting-controls').classList.add('hidden'); // We might want to hide just the button or disable inputs
         document.getElementById('game-area').classList.remove('hidden');
         document.getElementById('restart-btn').classList.add('hidden');
+        document.getElementById('top-bar').classList.remove('hidden'); // Ensure top bar is visible
 
         // Enable controls
         enableControls(true);
@@ -20,11 +57,12 @@ async function startGame() {
         // Reset containers (IMPORTANT for New Game animation)
         document.getElementById('dealer-cards').innerHTML = '';
         document.getElementById('player-cards').innerHTML = '';
+        document.getElementById('current-bet-display').classList.remove('hidden');
 
         updateUI(data);
     } catch (error) {
         console.error(error);
-        alert('Error starting game. Is the backend running?');
+        alert(error.message);
     }
 }
 
@@ -33,7 +71,10 @@ async function hit() {
     try {
         const response = await fetch(`${API_URL}/${gameId}/action`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Player-ID': playerId // Good practice to send it, though not strictly needed for action logic if store has it
+            },
             body: JSON.stringify({ action: 'hit' })
         });
         const data = await response.json();
@@ -48,7 +89,10 @@ async function stand() {
     try {
         const response = await fetch(`${API_URL}/${gameId}/action`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Player-ID': playerId
+            },
             body: JSON.stringify({ action: 'stand' })
         });
         const data = await response.json();
@@ -58,12 +102,31 @@ async function stand() {
     }
 }
 
+function resetGame() {
+    // Return to betting screen
+    document.getElementById('game-area').classList.add('hidden');
+    document.getElementById('betting-controls').classList.remove('hidden');
+    document.getElementById('current-bet-display').classList.add('hidden');
+    document.getElementById('status').innerText = 'Place your bet';
+    document.getElementById('status').style.color = 'white';
+}
+
 function updateUI(gameState) {
     const dealerContainer = document.getElementById('dealer-cards');
     const playerContainer = document.getElementById('player-cards');
     const statusDiv = document.getElementById('status');
     const dealerScoreSpan = document.getElementById('dealer-score');
     const playerScoreSpan = document.getElementById('player-score');
+    const balanceSpan = document.getElementById('player-balance');
+    const currentBetSpan = document.getElementById('current-bet');
+
+    // Update Balance & Bet
+    if (gameState.player_balance !== undefined) {
+        balanceSpan.innerText = gameState.player_balance;
+    }
+    if (gameState.current_bet !== undefined) {
+        currentBetSpan.innerText = gameState.current_bet;
+    }
 
     // Update Hands with Animation Logic
     updateHand(playerContainer, gameState.player_hand.cards);

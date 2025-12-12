@@ -62,6 +62,8 @@ const (
 // GameState represents the entire state of a blackjack game
 type GameState struct {
 	ID         string     `json:"id"`
+	PlayerID   string     `json:"player_id"`
+	BetAmount  int        `json:"bet_amount"`
 	PlayerHand Hand       `json:"player_hand"`
 	DealerHand Hand       `json:"dealer_hand"`
 	Deck       []Card     `json:"-"` // Hide deck from JSON
